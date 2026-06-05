@@ -1,0 +1,24 @@
+<?php
+
+namespace {{ NAMESPACE }};
+
+use Fazzinipierluigi\LaravelRails\Interfaces\ActionInterface;
+use Fazzinipierluigi\LaravelRails\Models\Instance;
+
+class {{ CLASS_NAME }} implements ActionInterface
+{
+    public static string $display_name = '{{ DISPLAY_NAME }}';
+
+    public function execute(Instance $instance, $entity, ?array $configuration, $destinationState): bool
+    {
+        // TODO: implement action logic
+        // $instance   → the current workflow instance
+        // $entity     → the entity the workflow is attached to
+        // $configuration → action-specific parameters (configured per action node)
+        // $destinationState → the UUID of the state being transitioned to
+        //
+        // Return true on success, throw an Exception on failure.
+
+        return true;
+    }
+}

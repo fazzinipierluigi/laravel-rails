@@ -1,0 +1,186 @@
+/* jsonlogic_ui — dark theme for use inside the Laravel Rails editor panel */
+
+.jsonlogic_ui {
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e2e8f0;
+}
+
+/* ── Root group ── */
+.jsonlogic_ui > .jl-root {
+    border: 1px solid #334155;
+    border-radius: 6px;
+    background: #0f172a;
+    overflow: hidden;
+}
+
+/* ── Group ── */
+.jl-group {
+    border: 1px solid #1e3a5f;
+    border-radius: 5px;
+    background: #0f172a;
+    margin-top: 6px;
+}
+.jl-group:first-child { margin-top: 0; }
+
+.jl-group-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px 8px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+}
+
+.jl-group-body {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.jl-group-body:empty {
+    padding: 4px 8px;
+}
+.jl-group-body:empty::after {
+    content: 'Nessuna regola';
+    color: #475569;
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* ── Rule row ── */
+.jl-rule {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px 8px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 5px;
+}
+
+/* ── Side (operand) ── */
+.jl-side {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+/* ── Selects ── */
+.jl-sel {
+    padding: 4px 6px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    color: #cbd5e1;
+    font-size: 11px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+}
+.jl-sel:focus { border-color: #3b82f6; }
+.jl-sel:hover { border-color: #475569; }
+
+/* Operator select — highlighted accent */
+.jl-op-sel {
+    color: #93c5fd;
+    border-color: #1e3a5f;
+    background: #0f172a;
+    min-width: 110px;
+}
+
+/* Group operator select */
+.jl-group-op {
+    font-weight: 700;
+    font-size: 11px;
+    color: #fbbf24;
+    border-color: #78350f;
+    background: #1c1100;
+    min-width: 60px;
+}
+
+/* Var select */
+.jl-var-sel {
+    max-width: 160px;
+}
+
+/* Side-type select */
+.jl-side-type {
+    min-width: 80px;
+}
+
+/* ── Text inputs ── */
+.jl-inp {
+    padding: 4px 7px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    color: #e2e8f0;
+    font-size: 11px;
+    outline: none;
+    transition: border-color .15s;
+    min-width: 80px;
+    max-width: 160px;
+}
+.jl-inp:focus { border-color: #3b82f6; }
+.jl-inp.jl-custom-var { min-width: 120px; }
+
+/* ── Buttons ── */
+.jl-btn {
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #1e3a5f;
+    color: #93c5fd;
+    transition: background .15s;
+    white-space: nowrap;
+}
+.jl-btn:hover { background: #1e4080; }
+
+.jl-btn-del {
+    padding: 3px 7px;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    background: #7f1d1d;
+    color: #fca5a5;
+    transition: background .15s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.jl-btn-del:hover { background: #ef4444; color: #fff; }
+
+/* ── NOT checkbox ── */
+.jl-not-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #f87171;
+    cursor: pointer;
+    padding: 2px 6px;
+    border: 1px solid #7f1d1d;
+    border-radius: 4px;
+    background: #1c0707;
+    transition: background .15s;
+}
+.jl-not-label:has(.jl-not-check:checked) {
+    background: rgba(239,68,68,.2);
+    border-color: #ef4444;
+}
+.jl-not-check {
+    accent-color: #ef4444;
+}
+
+/* ── Empty state ── */
+.jl-group-body:empty {
+    min-height: 20px;
+}
