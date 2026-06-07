@@ -21,6 +21,9 @@ Route::prefix('laravel-rails')
          Route::get('api/registered-actions', [EditorController::class, 'registeredActions'])
               ->name('registered-actions');
 
+         Route::get('api/csrf', fn() => response()->json(['token' => csrf_token()]))
+              ->name('csrf');
+
          // Form execution
          Route::post('transition/{transitionId}/execute', [FormController::class, 'execute'])
               ->name('transition.execute');

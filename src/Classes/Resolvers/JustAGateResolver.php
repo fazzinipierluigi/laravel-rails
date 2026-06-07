@@ -7,9 +7,8 @@ use Fazzinipierluigi\LaravelRails\Contracts\PermissionResolverInterface;
 /**
  * Resolver for fazzinipierluigi/just-a-gate.
  *
- * Expects the package to expose a facade at Fazzinipierluigi\JustAGate\Facades\JustAGate
- * with a fluent forUser($user)->can($ability) API.
- * Falls back to VanillaGateResolver if the API is incompatible.
+ * Uses JustAGate::userCan($user, $ability) when the facade supports it,
+ * then falls back to $user->can($ability) (Authorizable trait), then to VanillaGateResolver.
  */
 class JustAGateResolver implements PermissionResolverInterface
 {
@@ -23,14 +22,20 @@ class JustAGateResolver implements PermissionResolverInterface
 
         try {
             $facade = self::FACADE;
-            $gate   = method_exists($facade, 'forUser') ? $facade::forUser($user) : null;
+
+            $checkOne = function (string $perm) use ($user, $facade): bool {
+                if (method_exists($facade, 'userCan')) {
+                    return (bool) $facade::userCan($user, $perm);
+                }
+                if (method_exists($user, 'can')) {
+                    return (bool) $user->can($perm);
+                }
+                return false;
+            };
 
             if (strtoupper($operator) === 'AND') {
                 foreach ($permissions as $perm) {
-                    $result = $gate
-                        ? $gate->can($perm)
-                        : $facade::check($user, $perm);
-                    if (!$result) {
+                    if (!$checkOne($perm)) {
                         return false;
                     }
                 }
@@ -38,10 +43,7 @@ class JustAGateResolver implements PermissionResolverInterface
             }
 
             foreach ($permissions as $perm) {
-                $result = $gate
-                    ? $gate->can($perm)
-                    : $facade::check($user, $perm);
-                if ($result) {
+                if ($checkOne($perm)) {
                     return true;
                 }
             }

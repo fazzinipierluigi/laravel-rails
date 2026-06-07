@@ -4,5 +4,5 @@
 
 	interface ActionInterface
 	{
-		public function execute($instance, $entity, $configuration, $destination_state);
+		public function execute($instance, $entity, ?array $configuration, $destination_state): bool;
 	}

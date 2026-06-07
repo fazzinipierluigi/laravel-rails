@@ -934,6 +934,114 @@ Renders the read-only execution history viewer:
 @laravel_rail_execution($instanceId)
 ```
 
+### `@laravel_rail_actions`
+
+Renders the available transition actions for a workflow instance. Automatically reads the current state and shows only transitions whose `show_condition` and `view_permissions` pass for the current user.
+
+- **0 visible transitions** → renders nothing (empty string).
+- **1 visible transition** → renders the form (or a plain advance button) directly, no select.
+- **2+ visible transitions** → renders a `<select>` to choose among them, plus one panel per transition (only the selected one shown at a time).
+
+Styling is intentionally left to the host application. The package only provides structural HTML and stable CSS/data hooks.
+
+#### Basic usage
+
+```blade
+@laravel_rail_actions($instance->id)
+```
+
+#### With options
+
+```blade
+@laravel_rail_actions($instance->id, [
+    'wrapper_class' => 'my-actions',
+    'select_class'  => 'form-select',
+    'form_class'    => 'my-form',
+    'btn_class'     => 'btn btn-primary',
+])
+```
+
+#### Options
+
+| Option | Default | Description |
+|---|---|---|
+| `wrapper_class` | `lr-actions` | CSS class on the outer wrapper `<div>` |
+| `select_class` | `lr-actions-select` | CSS class on the `<select>` (multi-transition only) |
+| `form_class` | `lr-form` | CSS class forwarded to the form element |
+| `btn_class` | `lr-action-btn` | CSS class on plain advance `<button>` elements |
+| `btn_label` | transition label or `Avanza` | Override label for all plain-advance buttons |
+
+#### HTML structure
+
+Single transition (no select):
+
+```html
+<div class="lr-actions" id="lr-{uid}">
+  <div class="lr-action" data-transition="{transition-id}">
+    <!-- form rendered by @laravel_rail_form, or: -->
+    <form method="POST" action="..." class="lr-action-form">
+      <input type="hidden" name="instance_id" value="...">
+      <button type="submit" class="lr-action-btn" data-transition="{id}">Label</button>
+    </form>
+  </div>
+</div>
+```
+
+Multiple transitions:
+
+```html
+<div class="lr-actions" id="lr-{uid}">
+  <select class="lr-actions-select" id="lr-{uid}-select">
+    <option value="{transition-id}">Label A</option>
+    <option value="{transition-id}">Label B</option>
+  </select>
+
+  <div class="lr-action" id="lr-{uid}-{transition-id}" data-transition="{id}">
+    <!-- first panel: visible -->
+    ...
+  </div>
+  <div class="lr-action" id="lr-{uid}-{transition-id}" data-transition="{id}" style="display:none">
+    <!-- subsequent panels: hidden until selected -->
+    ...
+  </div>
+
+  <script>/* _lrSwitch inline helper */</script>
+</div>
+```
+
+#### CSS hooks
+
+| Selector | Element | Notes |
+|---|---|---|
+| `.lr-actions` | Outer wrapper | One per directive call |
+| `.lr-actions-select` | `<select>` | Only when 2+ transitions |
+| `.lr-action` | Panel per transition | Has `data-transition="{id}"` |
+| `.lr-action-form` | Plain-advance `<form>` | Only when transition has no custom form |
+| `.lr-action-btn` | Plain-advance `<button>` | Has `data-transition="{id}"` |
+
+#### Styling example (Bootstrap 5)
+
+```blade
+@laravel_rail_actions($instance->id, [
+    'select_class' => 'form-select mb-3',
+    'btn_class'    => 'btn btn-primary',
+])
+```
+
+```css
+.lr-actions { margin-top: 1.5rem; }
+.lr-action-form { display: flex; gap: .5rem; flex-wrap: wrap; }
+```
+
+#### Using `availableTransitions()` directly
+
+For custom rendering beyond what the directive provides:
+
+```php
+$transitions = $instance->availableTransitions();
+// Returns Collection<Transition>, ordered by sort, filtered by can_show()
+```
+
 ---
 
 ## HTTP API Reference

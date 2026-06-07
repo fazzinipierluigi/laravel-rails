@@ -41,9 +41,14 @@ class Instance extends Model
         return $this->belongsTo(State::class);
     }
 
+    public function instanceable()
+    {
+        return $this->morphTo();
+    }
+
     public function entity()
     {
-        return $this->morphTo('instanceable');
+        return $this->instanceable();
     }
 
     // ── Logger ────────────────────────────────────────────────────────
@@ -100,6 +105,24 @@ class Instance extends Model
     public function hasVariable(string $key): bool
     {
         return data_get($this->variables ?? [], $key) !== null;
+    }
+
+    // ── Available transitions (visible to current user) ───────────────
+
+    /**
+     * Returns all transitions from the current state that pass can_show().
+     * Ordered by sort. Use this to build the UI for manual advancement.
+     *
+     * @return \Illuminate\Support\Collection<\Fazzinipierluigi\LaravelRails\Models\Transition>
+     */
+    public function availableTransitions(): \Illuminate\Support\Collection
+    {
+        return $this->state
+            ->transitions()
+            ->orderBy('sort')
+            ->get()
+            ->filter(fn ($t) => $t->can_show($this))
+            ->values();
     }
 
     // ─────────────────────────────────────────────────────────────────

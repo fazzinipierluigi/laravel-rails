@@ -407,6 +407,27 @@
     canvas.connections_width  = 2;
     canvas.default_link_color = '#334155';
 
+    // ── Polyfill: not present in litegraph 0.7.18 ────────────────────────────────
+    LGraphCanvas.prototype.fitToContents = function () {
+        const nodes = this.graph._nodes;
+        if (!nodes.length) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const n of nodes) {
+            if (n.pos[0] < minX) minX = n.pos[0];
+            if (n.pos[1] < minY) minY = n.pos[1];
+            if (n.pos[0] + n.size[0] > maxX) maxX = n.pos[0] + n.size[0];
+            if (n.pos[1] + n.size[1] > maxY) maxY = n.pos[1] + n.size[1];
+        }
+        const pad = 60;
+        minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+        const cw = this.canvas.width, ch = this.canvas.height;
+        const scale = Math.min(cw / (maxX - minX), ch / (maxY - minY), 1.5);
+        this.ds.scale = scale;
+        this.ds.offset[0] = cw / scale / 2 - (minX + maxX) / 2;
+        this.ds.offset[1] = ch / scale / 2 - (minY + maxY) / 2;
+        this.setDirty(true, true);
+    };
+
     // Intercept link click → show transition modal
     canvas.onShowLinkMenu = function (link) {
         const transitionId = linkToTransitionId[link.id];

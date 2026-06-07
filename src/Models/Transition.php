@@ -17,11 +17,12 @@ class Transition extends Model
     public $incrementing  = false;
 
     protected $casts = [
-        'show_condition'    => 'array',
-        'execute_condition' => 'array',
-        'exit_condition'    => 'array',
+        'show_condition'      => 'array',
+        'execute_condition'   => 'array',
+        'exit_condition'      => 'array',
         'view_permissions'    => 'array',
         'advance_permissions' => 'array',
+        'waypoints'           => 'array',
     ];
 
     public static function booted(): void

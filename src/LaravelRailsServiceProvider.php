@@ -21,6 +21,7 @@ class LaravelRailsServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'laravel-rails');
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'laravel-rails');
         $this->loadRoutesFrom(__DIR__ . '/routes.php');
 
         // ── Blade directives ──────────────────────────────────────────
@@ -39,6 +40,10 @@ class LaravelRailsServiceProvider extends ServiceProvider
 
         Blade::directive('laravel_rail_execution', function (string $expression) {
             return "<?php echo view('laravel-rails::execution', ['instanceId' => {$expression}])->render(); ?>";
+        });
+
+        Blade::directive('laravel_rail_actions', function (string $expression) {
+            return "<?php echo \\Fazzinipierluigi\\LaravelRails\\Classes\\ActionsRenderer::render({$expression}); ?>";
         });
 
         // ── Entity observers for entity_event triggers ────────────────

@@ -35,24 +35,47 @@ class EditorController extends Controller
         }
 
         $data = $request->validate([
-            'states'                           => 'required|array',
-            'states.*.name'                    => 'required|string|max:255',
-            'states.*.type'                    => 'nullable|in:simple,conditional',
-            'states.*.code'                    => 'nullable|string|max:100',
-            'states.*.is_start'                => 'boolean',
-            'states.*.is_end'                  => 'boolean',
-            'states.*.x'                       => 'numeric',
-            'states.*.y'                       => 'numeric',
-            'states.*.on_enter_actions'        => 'array',
-            'states.*.on_exit_actions'         => 'array',
-            'states.*.transitions'             => 'array',
-            'states.*.transitions.*.to_id'       => 'required|string',
-            'states.*.transitions.*.actions'     => 'array',
-            'states.*.transitions.*.form_type'   => 'nullable|in:json,html',
-            'states.*.transitions.*.form_data'   => 'nullable|string',
+            'states'                               => 'required|array',
+            'states.*.name'                        => 'required|string|max:255',
+            'states.*.type'                        => 'nullable|in:simple,conditional',
+            'states.*.code'                        => 'nullable|string|max:100',
+            'states.*.is_start'                    => 'boolean',
+            'states.*.is_end'                      => 'boolean',
+            'states.*.x'                           => 'numeric',
+            'states.*.y'                           => 'numeric',
+            'states.*.on_enter_actions'            => 'array',
+            'states.*.on_exit_actions'             => 'array',
+            'states.*.transitions'                 => 'array',
+            'states.*.transitions.*.to_id'         => 'required|string',
+            'states.*.transitions.*.sort'          => 'nullable|integer',
+            'states.*.transitions.*.label'         => 'nullable|string|max:255',
+            'states.*.transitions.*.actions'       => 'array',
+            'states.*.transitions.*.form_type'     => 'nullable|in:json',
+            'states.*.transitions.*.form_data'     => 'nullable|string',
+            'states.*.transitions.*.waypoints'     => 'nullable|array',
+            'variables'                            => 'nullable|array',
+            'variables.*.name'                     => 'required_with:variables|string|max:100',
+            'variables.*.type'                     => 'nullable|in:string,number,boolean,date',
+            'variables.*.default'                  => 'nullable',
+            'variables.*.label'                    => 'nullable|string|max:255',
         ]);
 
+        // Validate: at most one initial state
+        $startCount = count(array_filter($data['states'], fn($s) => !empty($s['is_start'])));
+        if ($startCount > 1) {
+            return response()->json([
+                'message' => trans('laravel-rails::editor.single_start_err'),
+                'errors'  => ['states' => [trans('laravel-rails::editor.single_start_err')]],
+            ], 422);
+        }
+
         DB::transaction(function () use ($workflow, $data) {
+            // Save workflow-level variables
+            if (isset($data['variables'])) {
+                $workflow->variables = $data['variables'];
+                $workflow->save();
+            }
+
             $statePreserve = [];
             $statesMap     = [];
 
@@ -88,29 +111,24 @@ class EditorController extends Controller
                 $state->save();
 
                 $statePreserve[] = $state->id;
-                $statesMap[Str::slug($sData['name'])] = $state->id; // by slug
-                $statesMap[$sData['name']]             = $state->id; // by raw name
+                $statesMap[Str::slug($sData['name'])] = $state->id;
+                $statesMap[$sData['name']]             = $state->id;
                 if (!empty($sData['id'])) {
-                    $statesMap[$sData['id']] = $state->id;           // by UUID
+                    $statesMap[$sData['id']] = $state->id;
                 }
-                $statesMap[$state->id] = $state->id;                 // self-reference
+                $statesMap[$state->id] = $state->id;
 
-                // Replace on_enter / on_exit actions
                 $state->actions()->delete();
                 $this->saveStateActions($state, 'on_enter', $sData['on_enter_actions'] ?? []);
                 $this->saveStateActions($state, 'on_exit', $sData['on_exit_actions'] ?? []);
             }
 
-            // Remove orphaned states (cascade deletes their transitions + actions)
             State::where('workflow_id', $workflow->id)
                  ->whereNotIn('id', $statePreserve)
                  ->each(fn ($s) => $s->delete());
 
-            // Remove existing transitions for kept states
-            $keepIds = $statePreserve;
-            Transition::whereIn('from', $keepIds)->each(fn ($t) => $t->delete());
+            Transition::whereIn('from', $statePreserve)->each(fn ($t) => $t->delete());
 
-            // Create new transitions
             foreach ($data['states'] as $sData) {
                 $fromId = $statesMap[$sData['name']] ?? $statesMap[Str::slug($sData['name'])] ?? null;
                 if (empty($fromId)) {
@@ -126,7 +144,7 @@ class EditorController extends Controller
                     $transition                      = new Transition();
                     $transition->from                = $fromId;
                     $transition->to                  = $toId;
-                    $transition->sort                = $i;
+                    $transition->sort                = $tData['sort'] ?? $i;
                     $transition->label               = $tData['label'] ?? null;
                     $transition->show_condition      = $tData['show_condition'] ?? null;
                     $transition->execute_condition   = $tData['execute_condition'] ?? null;
@@ -139,6 +157,7 @@ class EditorController extends Controller
                     $transition->view_operator       = $tData['view_operator'] ?? 'OR';
                     $transition->advance_permissions = !empty($tData['advance_permissions']) ? $tData['advance_permissions'] : null;
                     $transition->advance_operator    = $tData['advance_operator'] ?? 'OR';
+                    $transition->waypoints           = !empty($tData['waypoints']) ? $tData['waypoints'] : null;
                     $transition->save();
 
                     foreach ($tData['actions'] ?? [] as $j => $aData) {
@@ -148,7 +167,7 @@ class EditorController extends Controller
                         $action->sort            = $j;
                         $action->phase           = $aData['phase'] ?? 'pre';
                         $action->action          = $aData['action'];
-                        $action->configuration   = $aData['configuration'] ?? null;
+                        $action->configuration   = !empty($aData['configuration']) ? $aData['configuration'] : null;
                         $action->save();
                     }
                 }
@@ -172,10 +191,11 @@ class EditorController extends Controller
     private function serializeWorkflow(Workflow $workflow): array
     {
         return [
-            'id'     => $workflow->id,
-            'name'   => $workflow->name,
-            'slug'   => $workflow->slug,
-            'states' => $workflow->states()->orderBy('code')->get()->map(function (State $state) {
+            'id'        => $workflow->id,
+            'name'      => $workflow->name,
+            'slug'      => $workflow->slug,
+            'variables' => $workflow->variables ?? [],
+            'states'    => $workflow->states()->orderBy('code')->get()->map(function (State $state) {
                 return [
                     'id'               => $state->id,
                     'name'             => $state->name,
@@ -186,8 +206,6 @@ class EditorController extends Controller
                     'is_end'           => $state->is_end,
                     'x'                => (float) $state->x,
                     'y'                => (float) $state->y,
-                    'view_permissions' => $state->view_permissions ?? [],
-                    'view_operator'    => $state->view_operator ?? 'OR',
                     'view_permissions' => $state->view_permissions ?? [],
                     'view_operator'    => $state->view_operator ?? 'OR',
                     'on_enter_actions' => $this->serializeActions($state->actions()->where('phase', 'on_enter')->orderBy('sort')->get()),
@@ -208,6 +226,7 @@ class EditorController extends Controller
                         'view_operator'       => $t->view_operator ?? 'OR',
                         'advance_permissions' => $t->advance_permissions ?? [],
                         'advance_operator'    => $t->advance_operator ?? 'OR',
+                        'waypoints'           => $t->waypoints ?? [],
                         'actions'             => $this->serializeActions($t->actions()->orderBy('sort')->get()),
                     ]),
                 ];
@@ -238,7 +257,7 @@ class EditorController extends Controller
             $action->sort            = $aData['sort'] ?? $i;
             $action->phase           = $phase;
             $action->action          = $aData['action'];
-            $action->configuration   = $aData['configuration'] ?? null;
+            $action->configuration   = !empty($aData['configuration']) ? $aData['configuration'] : null;
             $action->save();
         }
     }
